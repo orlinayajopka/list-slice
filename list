@@ -1,0 +1,149 @@
+package education
+
+import (
+	"errors"
+	"fmt"
+	"reflect"
+	"sync"
+)
+
+type List struct {
+	len       int64
+	firstNode *Node
+	mx        *sync.Mutex
+}
+
+type Node struct {
+	data     any
+	nextNode *Node
+}
+
+func NewList() (l *List) {
+	l = &List{
+		len:       0,
+		firstNode: nil,
+		mx:        &sync.Mutex{},
+	}
+	return
+}
+
+func (l *List) Add(data any) (index int64, err error) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	if (l.len != 0) && (reflect.TypeOf(l.firstNode.data) != reflect.TypeOf(data)) {
+		index = 0
+		err = errors.New("data type does not match the list")
+		return
+	}
+	n := &Node{}
+	n.data = data
+	if l.firstNode == nil {
+		l.firstNode = n
+		l.len++
+		return l.len - 1, nil
+	} else {
+		cn := l.firstNode
+		for {
+			if cn.nextNode == nil {
+				break
+			}
+			cn = cn.nextNode
+		}
+		cn.nextNode = n
+		l.len++
+		return l.len - 1, nil
+	}
+}
+
+func (l *List) Delete(index int64) (ok bool) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	if index > l.len-1 {
+		return false
+	}
+	if index < 0 {
+		return false
+	}
+	if index == 0 {
+		return true
+	}
+	var lastNode *Node
+	currentNode := l.firstNode
+	for n := int64(0); n < index; n++ {
+		lastNode = currentNode
+		currentNode = lastNode.nextNode
+	}
+	nextNode := currentNode.nextNode
+	lastNode.nextNode = nextNode
+	l.len--
+	return true
+}
+func (l *List) Print() {
+	if l.firstNode == nil {
+		fmt.Println("empty list")
+		return
+	}
+	cn := l.firstNode
+	for {
+		fmt.Println(cn.data)
+		if cn.nextNode == nil {
+			break
+		}
+		cn = cn.nextNode
+	}
+}
+
+func (l *List) SortIncreaseLink(more func(i, j any) bool) {
+	if l.firstNode == nil {
+		fmt.Println("empty list")
+		return
+	}
+
+	for i := int64(0); i < l.len-1; i++ {
+		if more(l.firstNode.data, l.firstNode.nextNode.data) {
+			bufNode := l.firstNode
+			l.firstNode = l.firstNode.nextNode
+			bufNode.nextNode = l.firstNode.nextNode
+			l.firstNode.nextNode = bufNode
+		}
+		lastNode := l.firstNode
+		currentNode := l.firstNode.nextNode
+		for {
+			if currentNode.nextNode == nil {
+				break
+			}
+			if more(currentNode.data, currentNode.nextNode.data) {
+				bufNode := currentNode
+				lastNode.nextNode = currentNode.nextNode
+				bufNode.nextNode = currentNode.nextNode.nextNode
+				lastNode.nextNode.nextNode = bufNode
+				currentNode = lastNode.nextNode
+			}
+			lastNode = lastNode.nextNode
+			currentNode = currentNode.nextNode
+		}
+	}
+}
+
+func (l *List) Sort(more func(i, j any) bool) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	if l.firstNode == nil {
+		fmt.Println("empty list")
+		return
+	}
+
+	for i := int64(0); i < l.len-1; i++ {
+		ci := l.firstNode
+		cj := l.firstNode.nextNode
+		for j := int64(1); j < l.len-1; j++ {
+			if more(ci.data, cj.data) {
+				ci.data, cj.data = cj.data, ci.data
+			}
+			if cj.nextNode != nil {
+				ci = ci.nextNode
+				cj = cj.nextNode
+			}
+		}
+	}
+}
