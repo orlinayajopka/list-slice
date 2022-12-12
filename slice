@@ -1,0 +1,47 @@
+package slice
+
+import (
+	"fmt"
+	"sync"
+)
+
+type Slice struct {
+	sl []int64
+	mx *sync.Mutex
+}
+
+func (s *Slice) Add(data int64) (index int64) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	s.sl = append(s.sl, data)
+	return int64(len(s.sl) - 1)
+}
+
+func (s *Slice) Delete(index int64) (ok bool) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	if index > int64(len(s.sl)-1) {
+		fmt.Println("Invalid index")
+		return false
+	}
+	copy(s.sl[index:], s.sl[index+1:])
+	s.sl[len(s.sl)-1] = 0
+	s.sl = s.sl[:len(s.sl)-1]
+	return true
+}
+
+func (s *Slice) Print() {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	fmt.Println(s.sl)
+}
+
+func (s *Slice) Sort(more func(i, j any) bool) {
+	for i := 0; i < len(s.sl); i++ {
+		for j := 0; j < len(s.sl); j++ {
+			if more(s.sl[i], s.sl[j]) {
+				s.sl[i], s.sl[j] = s.sl[j], s.sl[i]
+			}
+		}
+	}
+}
